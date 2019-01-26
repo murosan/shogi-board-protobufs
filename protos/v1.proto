@@ -1,5 +1,4 @@
 syntax = "proto3";
-import "google/protobuf/any.proto";
 
 package v1;
 
@@ -14,7 +13,12 @@ service ShogiBoard {
   rpc GetOptions(EngineName) returns (Options);
 
   // 将棋エンジンのオプションを更新する
-  rpc UpdateOption(UpdateOptionRequest) returns (Response);
+  rpc UpdateButton(UpdateButtonRequest) returns (Response);
+  rpc UpdateCheck(UpdateCheckRequest) returns (Response);
+  rpc UpdateSpin(UpdateSpinRequest) returns (Response);
+  rpc UpdateSelect(UpdateSelectRequest) returns (Response);
+  rpc UpdateString(UpdateStringRequest) returns (Response);
+  rpc UpdateFilename(UpdateFilenameRequest) returns (Response);
 
   // 将棋エンジンに思考開始コマンドを実行
   rpc Start(EngineName) returns (Response);
@@ -31,18 +35,22 @@ service ShogiBoard {
 
 message Response {}
 
-message EngineName { string engine = 1; }
+message EngineName { string name = 1; }
 
 message SetPositionRequest {
   EngineName engine = 1;
+  Position pos = 2;
+}
 
+message Position {
   // 二次元配列で持った盤上の局面
-  message Row { repeated int32 row = 1; }
   repeated Row pos = 2;
 
   // 先手の持ち駒
+  // [歩, 香, 桂, 銀, 金, 角, 飛] 先手の持ち駒それぞれの枚数
   repeated int32 cap0 = 3;
   // 後手の持ち駒
+  // [歩, 香, 桂, 銀, 金, 角, 飛] 後手の持ち駒それぞれの枚数
   repeated int32 cap1 = 4;
 
   // 手番, 1: 先手, -1: 後手
@@ -51,6 +59,8 @@ message SetPositionRequest {
   // 手数
   int32 moveCount = 6;
 }
+
+message Row { repeated int32 row = 1; }
 
 // 将棋エンジンのオプション一覧
 message Options {
@@ -62,32 +72,50 @@ message Options {
   map<string, Filename> filenames = 6;
 }
 
-message UpdateOptionRequest {
+message UpdateButtonRequest {
   EngineName engine = 1;
-  string name = 2;
-  OptionType type = 3;
-  // TODO: Any はないわ
-  // UpdateButtonOption、UpdateSpinOption みたいなAPIを作るかもしれない
-  google.protobuf.Any value = 4;
+  Button button = 2;
 }
 
-enum OptionType {
-  BUTTON = 0;
-  CHECK = 1;
-  SPIN = 2;
-  SELECT = 3;
-  STRING = 4;
-  FILENAME = 5;
+message UpdateCheckRequest {
+  EngineName engine = 1;
+  Check check = 2;
 }
 
+message UpdateSpinRequest {
+  EngineName engine = 1;
+  Spin spin = 2;
+}
+
+message UpdateSelectRequest {
+  EngineName engine = 1;
+  Select select = 2;
+}
+
+message UpdateStringRequest {
+  EngineName engine = 1;
+  String string = 2;
+}
+
+message UpdateFilenameRequest {
+  EngineName engine = 1;
+  Filename filename = 2;
+}
+
+// USI の button。値は持たない。on/off の機能はなく、
+// 単に押すだけということ
 message Button { string name = 1; }
 
+// USI の check。bool(true|false) の値を持つ
 message Check {
   string name = 1;
   bool val = 2;
   bool default = 3;
 }
 
+// USI の spin。int の値を持つ。初期値・最小値・最大値が必要。
+// 値は必ずその範囲内である必要がある
+// Range とかに変えようかな
 message Spin {
   string name = 1;
   int32 val = 2;
@@ -96,6 +124,8 @@ message Spin {
   int32 max = 5;
 }
 
+// USI の combo。Vars が選択肢で、値(Val)や Default はその Vars から選ぶ。
+// Vars に存在しない値は持つことができない
 message Select {
   string name = 1;
   string val = 2;
@@ -103,12 +133,16 @@ message Select {
   repeated string vars = 4;
 }
 
+// USI の string。単純な文字列を値に持つ
 message String {
   string name = 1;
   string val = 2;
   string default = 3;
 }
 
+// USI の filename。ファイル名とあるが、実態は String
+// と全く同じただの文字列である。 String と分けているのは謎だが、USI
+// でそうなっているので仕方ない
 message Filename {
   string name = 1;
   string val = 2;
@@ -116,7 +150,11 @@ message Filename {
 }
 
 // 思考結果
-message Result {
+message Result { map<int32, Info> result = 1; }
+
+// USI が info ~ で出力する内容
+// Info という名前は分かりづらいので変えたい
+message Info {
   // depth, seldepth, time, nodes, nps, hashfull が入る
   // 将棋エンジンから必ず出力されるものではないので
   map<string, int32> values = 1;
@@ -135,11 +173,15 @@ message Move {
   // 移動先
   Point dest = 2;
   // 駒ID
-  int32 pieceId = 3;
+  int32 pieceID = 3;
   // 成: true, 成以外: false
   bool isPromoted = 4;
 }
 
+// 盤上の位置を表す
+// ７六歩なら row=5, column=6
+// row と column は 0-8 | -1
+// -1 は持ち駒
 message Point {
   int32 row = 1;
   int32 column = 2;
