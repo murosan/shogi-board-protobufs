@@ -1,0 +1,146 @@
+syntax = "proto3";
+import "google/protobuf/any.proto";
+
+package v1;
+
+service ShogiBoard {
+  // 将棋エンジンに接続
+  rpc Connect(EngineName) returns (Response);
+
+  // 将棋エンジンとの接続を解除
+  rpc Close(EngineName) returns (Response);
+
+  // 将棋エンジンのオプション一覧を取得する
+  rpc GetOptions(EngineName) returns (Options);
+
+  // 将棋エンジンのオプションを更新する
+  rpc UpdateOption(UpdateOptionRequest) returns (Response);
+
+  // 将棋エンジンに思考開始コマンドを実行
+  rpc Start(EngineName) returns (Response);
+
+  // 将棋エンジンに思考停止コマンドを実行
+  rpc Stop(EngineName) returns (Response);
+
+  // 将棋エンジンに局面を変更コマンドを実行
+  rpc SetPosition(SetPositionRequest) returns (Response);
+
+  // 将棋エンジンの思考結果を取得する
+  rpc GetResult(EngineName) returns (Result);
+}
+
+message Response {}
+
+message EngineName { string engine = 1; }
+
+message SetPositionRequest {
+  EngineName engine = 1;
+
+  // 二次元配列で持った盤上の局面
+  message Row { repeated int32 row = 1; }
+  repeated Row pos = 2;
+
+  // 先手の持ち駒
+  repeated int32 cap0 = 3;
+  // 後手の持ち駒
+  repeated int32 cap1 = 4;
+
+  // 手番, 1: 先手, -1: 後手
+  int32 turn = 5;
+
+  // 手数
+  int32 moveCount = 6;
+}
+
+// 将棋エンジンのオプション一覧
+message Options {
+  map<string, Button> buttons = 1;
+  map<string, Check> checks = 2;
+  map<string, Spin> spins = 3;
+  map<string, Select> selects = 4;
+  map<string, String> strings = 5;
+  map<string, Filename> filenames = 6;
+}
+
+message UpdateOptionRequest {
+  EngineName engine = 1;
+  string name = 2;
+  OptionType type = 3;
+  // TODO: Any はないわ
+  // UpdateButtonOption、UpdateSpinOption みたいなAPIを作るかもしれない
+  google.protobuf.Any value = 4;
+}
+
+enum OptionType {
+  BUTTON = 0;
+  CHECK = 1;
+  SPIN = 2;
+  SELECT = 3;
+  STRING = 4;
+  FILENAME = 5;
+}
+
+message Button { string name = 1; }
+
+message Check {
+  string name = 1;
+  bool val = 2;
+  bool default = 3;
+}
+
+message Spin {
+  string name = 1;
+  int32 val = 2;
+  int32 default = 3;
+  int32 min = 4;
+  int32 max = 5;
+}
+
+message Select {
+  string name = 1;
+  string val = 2;
+  string default = 3;
+  repeated string vars = 4;
+}
+
+message String {
+  string name = 1;
+  string val = 2;
+  string default = 3;
+}
+
+message Filename {
+  string name = 1;
+  string val = 2;
+  string default = 3;
+}
+
+// 思考結果
+message Result {
+  // depth, seldepth, time, nodes, nps, hashfull が入る
+  // 将棋エンジンから必ず出力されるものではないので
+  map<string, int32> values = 1;
+
+  // 評価値
+  int32 score = 2;
+
+  // 読み
+  repeated Move moves = 3;
+}
+
+// 指し手
+message Move {
+  // 移動元
+  Point source = 1;
+  // 移動先
+  Point dest = 2;
+  // 駒ID
+  int32 pieceId = 3;
+  // 成: true, 成以外: false
+  bool isPromoted = 4;
+}
+
+message Point {
+  int32 row = 1;
+  int32 column = 2;
+}
