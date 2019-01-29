@@ -3,6 +3,9 @@ syntax = "proto3";
 package v1;
 
 service ShogiBoard {
+  // 接続可能な将棋エンジンの名前一覧を取得
+  rpc GetEngineNames(Request) returns (EngineNames);
+
   // 将棋エンジンに接続
   rpc Connect(EngineName) returns (Response);
 
@@ -33,9 +36,12 @@ service ShogiBoard {
   rpc GetResult(EngineName) returns (Result);
 }
 
+message Request {}
 message Response {}
 
 message EngineName { string name = 1; }
+
+message EngineNames { repeated string engines = 1; }
 
 message SetPositionRequest {
   EngineName engine = 1;
