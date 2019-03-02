@@ -3,8 +3,10 @@ syntax = "proto3";
 package v1;
 
 service ShogiBoard {
-  // 接続可能な将棋エンジンの名前一覧を取得
-  rpc GetEngineNames(Request) returns (EngineNames);
+  // サーバーを初期化。フロントから最初にアクセスするときに叩く
+  // サーバーは接続済のエンジンがあれば全て閉じる
+  // 接続可能な将棋エンジンの名前一覧を返す
+  rpc Initialize(Request) returns (EngineNames);
 
   // 将棋エンジンに接続
   rpc Connect(EngineName) returns (Response);
